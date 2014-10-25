@@ -23,8 +23,19 @@ class GAuthorizedUserOnlyOptions
 
 	public function create_admin_page()
 	{
-        $this->options = get_option('g_authorized_user_only_option_name');
-
+        $this->options = get_option('g_authorized_user_only_redirect_url');
+        ?>
+        <div class="wrap">
+            <h2>Sba App Config</h2>
+            <form method="post" action="options.php">
+                <?php
+                settings_fields('g_authorized_user_only_option_group');
+                do_settings_sections('g-authorized-user-only-admin');
+                submit_button(); 
+                ?>
+            </form>
+        </div>
+        <?php
     }
 
    public function page_init()
@@ -32,26 +43,26 @@ class GAuthorizedUserOnlyOptions
 
         if(!current_user_can('administrator')) return ;
     	register_setting(
-			'sba_app_option_group',
-            'sba_app_option_name',
+			'g_authorized_user_only_option_group',
+            'g_authorized_user_only_option',
             array($this,'sanitize')
 		);
 
 
         add_settings_section(
             'g_authorized_user_only_section',
-            'Not logged in user redirect url',
+            'URL settings',
             array($this,'print_section_info'),
             'g-authorized-user-only-admin'
         );
 
 
         add_settings_field(
-            'g_authorized_user_only_redirect_url_option',
+            'g_authorized_user_only_redirect_url',
             'Not logged in user redirect url',
-            array($this,'g_authorized_user_only_redirect_url_option_callback'),
+            array($this,'g_authorized_user_only_redirect_url_callback'),
             'g-authorized-user-only-admin',
-            'g_authorized_user_only_section',
+            'g_authorized_user_only_section'
         );
 	}
 
@@ -60,14 +71,11 @@ class GAuthorizedUserOnlyOptions
         echo 'Configuration';
     }
 
-    public function g_authorized_user_only_redirect_url_option_callback()
+    public function g_authorized_user_only_redirect_url_callback()
     {
-        printf('<input type="text" id="acls_context" name="sba_app_option_name[acls_context]" value="%s" />',
-            isset($this->options['acls_context'])?
-            esc_attr($this->options['acls_context']):'');  
-        printf('<input type="text" id="acls_context" name="sba_app_option_name[acls_context]" value="%s" />',
-            isset($this->options['acls_context'])?
-            esc_attr($this->options['acls_context']):'');  
+        printf('<input type="text" id="g_authorized_user_only_redirect_url" name="g_authorized_user_only_redirect_url" value="%s" />',
+            isset($this->options['g_authorized_user_only_redirect_url'])?
+            esc_attr($this->options['g_authorized_user_only_redirect_url']):'');  
     }
 
 	public function sanitize($input)
