@@ -1,7 +1,7 @@
 <?php
 /**
- * Plugin Name: Gafreax Authorzed User Only
- * Plugin URI: gafreax.wordpress.com
+ * Plugin Name: G-Authorzed User Only
+ * Plugin URI: github.com/gafreax/wp-g-authorized-user-only
  * Description: Really simple plugin for allow only auth user to be logged in
  * Version: 1.0
  * Author: gabriele fontana <gafreax@gmail.com>

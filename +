@@ -1,0 +1,150 @@
+<?php
+
+class SbaAppOptions
+{
+	private $options;
+    private $error = array();
+	public function __construct()
+	{
+		add_action('admin_menu', array($this,'add_plugin_page'));
+		add_action('admin_init', array($this,'page_init'));
+	}
+
+	public function add_plugin_page()
+	{
+		add_options_page(
+            'Settings Admin',
+            'Sba App Settings',
+            'manage_options',
+            'sba-app-options-admin',
+            array($this, 'create_admin_page')
+		);
+	}
+
+	public function create_admin_page()
+	{
+        $this->options = get_option('sba_app_option_name');
+        if(count($error)) 
+            sba_error($error);
+        else 
+		    include __DIR__ . '/admin-page.php';
+	}
+
+
+    protected function sba_error($message)
+    {
+        $message_out = is_array($message)? implode("\n",$message):$message;
+        ?>
+        <div class="wrap">
+	        <div class="error"><?=$message?></div>
+        </div>
+        <?
+    }
+
+    private function get_ldap_conn()
+    {
+        global $ldap_login_password_and_role_manager_ldap;
+        if ( ! $ldap_login_password_and_role_manager_ldap = ldap_connect(LDAP_HOST, LDAP_PORT) ) {
+            return false;
+        }
+
+        ldap_set_option($ldap_login_password_and_role_manager_ldap, LDAP_OPT_PROTOCOL_VERSION, LDAP_VERSION);
+        ldap_set_option($ldap_login_password_and_role_manager_ldap, LDAP_OPT_REFERRALS, 0);
+
+        if ( get_option('ldap_login_password_and_role_manager_use_tls') == 'yes' ) ldap_start_tls($ldap_login_password_and_role_manager_ldap);
+
+        $base_dn = get_option('ldap_login_password_and_role_manager_base_dn');
+        $userattr = get_option('ldap_login_password_and_role_manager_loginattr');
+        $filter = '(' . $userattr . '=' . $username . ')';
+
+        {
+            $binddn = get_option('ldap_login_password_and_role_manager_binddn','');
+            $bindpw = get_option('ldap_login_password_and_role_manager_bindpw','');
+            if ( trim($binddn).'x' != 'x' && ! ldap_bind($ldap_login_password_and_role_manager_ldap, $binddn, $bindpw)) {
+                return false;
+            }}
+    }
+
+    private function search_app()
+    {
+
+        global $ldap_login_password_and_role_manager_ldap;
+        $base_dn = get_option('ldap_login_password_and_role_manager_base_dn');
+        $filter='objectClass=sbapplicazioni';
+        $this->dump($ldap_login_password_and_role_manager_ldap);
+        $search = @ldap_search($ldap_login_password_and_role_manager_ldap, $base_dn, $filter,'SBAcodiceambiente');
+        if($search == null) $this->dump(ldap_error($ldap_login_password_and_role_manager_ldap));
+        $ret = ldap_get_entries($ldap_login_password_and_role_manager_ldap,$search);
+        return $ret;
+    }
+
+    private function dump($data)
+    {
+        echo '<pre>';
+        var_dump($data);
+        echo '</pre>';
+    }
+
+    public function page_init()
+    {
+        global $ldap_login_password_and_role_manager_ldap;
+
+        if(!current_user_can('administrator')) return sba_error("Not admin user");
+        if(!is_plugin_active('g-ldap-login-password-and-role-manager/ldap_login_password_and_role_manager.php') && 
+		    !is_plugin_active('sba-ldap-login-password-and-role-manager/ldap_login_password_and_role_manager.php') &&
+    		!is_plugin_active('ldap-login-password-and-role-manager/ldap_login_password_and_role_manager.php')
+		  ) return  sba_error("LDAP Plugins not present");
+        $this->get_ldap_conn();
+        $app = $this->search_app();
+    		register_setting(
+			'sba_app_option_group',
+            'sba_app_option_name',
+            array($this,'sanitize')
+		);
+        $this->dump($app);
+
+        add_settings_section(
+            'setting_section_id',
+            'Accessi Controllati Locali Società ',
+            array($this,'print_section_info'),
+            'sba-app-options-admin'
+        );
+
+
+        add_settings_field(
+            'gesb_context',
+            'GESB Contesti Abilitati',
+            array($this,'acls_context_callback'),
+            'sba-app-options-admin',
+            'setting_section_id'
+        );
+        add_settings_field(
+            'jple_context',
+            'JPeople Contesti Abilitati',
+            array($this,'acls_context_callback'),
+            'sba-app-options-admin',
+            'setting_section_id'
+        );
+
+	}
+
+    public function print_section_info()
+    {
+        echo 'Inserire la configurazione';
+    }
+
+    public function acls_context_callback()
+    {
+        printf('<input type="text" id="acls_context" name="sba_app_option_name[acls_context]" value="%s" />',
+            isset($this->options['acls_context'])?
+            esc_attr($this->options['acls_context']):'');  
+    }
+
+	public function sanitize($input)
+	{
+		return $input;
+	}
+}
+
+if(is_admin())
+	$options  = new SbaAppOptions();
